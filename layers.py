@@ -15,9 +15,26 @@ class Layer_Dense:
     def forward(self, inputs):
         self.output = np.dot(inputs, self.weights) + self.biases
 
+    def backward(self, dvalues):
+        self.dweights = np.dot(self.inputs.T, dvalues)
+        self.biases = np.sum(dvalues, axis=0, keepdims=True)
+        # Gradients on inputs
+        self.inputs = np.dot(dvalues, self.weights.T)
+
 class Activation_ReLU:
     def forward(self, inputs):
+        self.inputs = inputs
         self.output = np.maximum(0, inputs)
+
+    def backward(self, dvalues):
+        # Since we need to modify the original variable,
+        # Making copies of the values first
+        self.dinputs = dvalues.copy()
+
+        # Zero gradients where the input values are negative
+        self.dinputs[dvalues <= 0] = 0
+
+
 
 class Activation_Softmax:
     def forward(self, inputs):
