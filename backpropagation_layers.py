@@ -40,5 +40,3 @@ dinputs = np.dot(dvalues, weights.T)
 
 print(dinputs)
 
-
-
