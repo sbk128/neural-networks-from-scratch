@@ -43,10 +43,55 @@ dbiases = np.sum(drelu, axis=0, keepdims=True)
 
 # Updating parameters 
 weights += -0.001 * dweights
-biases += -0.001 * dvfbiases
+biases += -0.001 * dbiases
 
 print(weights)
 print(biases)
+
+#
+##
+###
+##
+#
+
+# ANOTHER WAY OF ACHIEVING THE SAME RESULTS AND MUCH BETTER EXPLANATION
+
+np.random.seed(seed=345345)
+
+# Define inputs
+inputs = np.random.rand(50, 3)
+
+# Define weights
+size = (3, 2)
+weights = np.random.uniform(-1, 1, size)
+
+# Forward pass
+forward_pass = np.dot(inputs , weights)
+
+# ReLU Activation
+relu = np.maximum(0 , forward_pass)
+
+# Starting backpropagation
+# 1(x > 0)
+drelu = relu.copy()
+drelu[drelu > 0] = 1
+drelu[drelu <= 0] = 0
+
+# Matrix multiplication
+dweights = np.dot(inputs.T, drelu)
+
+# Applying derivatives to weights
+weights1 = dweights * -0.001 + weights
+
+# Second forward pass
+forward_pass_1 = np.dot(inputs, weights1)
+
+print("After first forward_pass: ", np.mean(forward_pass))
+print("After second forward_pass i.e. after applying backpropagation to weights: ", np.mean(forward_pass_1))
+
+
+
+
 
 
 
