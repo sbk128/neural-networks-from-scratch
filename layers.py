@@ -11,10 +11,17 @@ nnfs.init()
 class Layer_Dense:
 
     # Layer initialization
-    def __init__(self, n_inputs, n_neurons):
+    def __init__(self, n_inputs, n_neurons,
+                 weight_regularizer_L1=0, weight_regularizer_L2=0,
+                 bias_regularizer_L1=0, bias_regularizer_L2=0):
         # Initialize weights and biases
         self.weights = 0.01 * np.random.randn(n_inputs, n_neurons)
         self.biases = np.zeros((1, n_neurons))
+        # Setting regularization
+        self.weight_regularizer_L1 = weight_regularizer_L1
+        self.weight_regularizer_L2 = weight_regularizer_L2
+        self.bias_regularizer_L1 = bias_regularizer_L1
+        self.bias_regularizer_L2 = bias_regularizer_L2
 
     # Forward pass
     def forward(self, inputs):
@@ -162,7 +169,22 @@ class Loss_CategoricalCrossentropy(Loss):
         # Normalize gradient
         self.dinputs = self.dinputs / samples
 
+    def regularization_loss(self, layer):
+        regularization_loss = 0
 
+        if layer.weight_regularizer_L1 > 0:
+            regularization_loss += layer.weight_regularizer_L1 * np.sum(np.abs(layer.weights)) 
+
+        if layer.weight_regularizer_L2 > 0:
+            regularization_loss += layer.weight_regularizer_L2 * np.sum(layer.weights * layer.weights)
+
+        if layer.bias_regularizer_L1 > 0:
+            regularization_loss += layer.bias_regularizer_L1 * np.sum(np.abs(layer.biases)) 
+
+        if layer.bias_regularizer_L2 > 0:
+            regularization_loss += layer.bias_regularizer_L2 * np.sum(layer.biases * layer.biases)
+
+        return regularization_loss
 # Softmax classifier - combined Softmax activation
 # and cross-entropy loss for faster backward step
 class Activation_Softmax_Loss_CategoricalCrossentropy:
@@ -438,6 +460,11 @@ for epoch in range(10001):
     # takes outputs of activation function of first layer as inputs
     dense2.forward(activation1.output)
 
+    data_loss = loss_activation.forward(dense2.output, y)
+
+    regularization_loss = loss_activation.loss.regularization_loss(dense1) + loss_activation.loss.regularization_loss(dense2)
+
+    loss = data_loss + regularization_loss
     # Perform a forward pass through the activation/loss function
     # takes the output of second dense layer here and returns loss
     loss = loss_activation.forward(dense2.output, y)
