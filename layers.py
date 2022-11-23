@@ -460,6 +460,21 @@ class Optmizer_Adam:
     def post_update_params(self):
         self.iterations += 1
 
+class Layer_Dropout:
+    def __init__(self, rate):
+        # We invert the rate
+        # For eg. for dropout of 0.1 we need succss rate of 0.9
+        self.rate = 1 - rate
+
+    def forward(self, inputs):
+        self.inputs = inputs
+        # Creating a binary mask
+        self.binary_mask = np.random.binomial(1, self.rate, size=inputs.shape) / self.rate
+        # Applying mask to output values
+        self.output = inputs * self.binary_mask
+
+    def backward(self, dvalues):
+        self.dinputs = dvalues * self.binary_mask
         
 
 
@@ -474,9 +489,13 @@ dense1 = Layer_Dense(2, 64, weight_regularizer_L2=5e-4,
 # Create ReLU activation (to be used with Dense layer):
 activation1 = Activation_ReLU()
 
+# Creating a dropout layer
+dropout1 = Layer_Dropout(0.1)
+
 # Create second Dense layer with 64 input features (as we take output
 # of previous layer here) and 3 output values (output values)
 dense2 = Layer_Dense(64, 3)
+
 
 # Create Softmax classifier's combined loss and activation
 loss_activation = Activation_Softmax_Loss_CategoricalCrossentropy()
@@ -484,7 +503,7 @@ loss_activation = Activation_Softmax_Loss_CategoricalCrossentropy()
 # Create optimizer
 # optimizer = Optimizer_SGD(decay=1e-3, momentum=0.56)
 # optimizer = Optimizer_RMSprop(learning_rate=0.02, decay=1e-5, rho=0.99)
-optimizer = Optmizer_Adam(learning_rate=0.05, decay=5e-7)
+optimizer = Optmizer_Adam(learning_rate=0.05, decay=5e-5)
 
 # Training in loop for several epochs
 for epoch in range(10001):
@@ -496,9 +515,12 @@ for epoch in range(10001):
     # takes the output of first dense layer here
     activation1.forward(dense1.output)
 
+    # Perform a forward pass through dropout layer
+    dropout1.forward(activation1.output)
+
     # Perform a forward pass through second Dense layer
     # takes outputs of activation function of first layer as inputs
-    dense2.forward(activation1.output)
+    dense2.forward(dropout1.output)
 
     data_loss = loss_activation.forward(dense2.output, y)
 
@@ -538,7 +560,8 @@ for epoch in range(10001):
     # Backward pass
     loss_activation.backward(loss_activation.output, y)
     dense2.backward(loss_activation.dinputs)
-    activation1.backward(dense2.dinputs)
+    dropout1.backward(dense2.dinputs)
+    activation1.backward(dropout1.dinputs)
     dense1.backward(activation1.dinputs)
 
     optimizer.pre_update_params()
